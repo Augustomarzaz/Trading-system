@@ -6,7 +6,7 @@
 
 import yfinance as yf
 import pandas as pd
-import pandas_ta as ta
+import ta as ta_lib
 import numpy as np
 from scipy import stats
 from datetime import datetime
@@ -84,9 +84,9 @@ def calcular_senales(ticker, params):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        df["EMA_r"] = ta.ema(df["Close"], length=TECNICO["ema_rapida"])
-        df["EMA_l"] = ta.ema(df["Close"], length=TECNICO["ema_lenta"])
-        df["RSI"]   = ta.rsi(df["Close"], length=TECNICO["rsi_periodo"])
+        df["EMA_r"] = ta_lib.trend.ema_indicator(df["Close"], window=TECNICO["ema_rapida"])
+        df["EMA_l"] = ta_lib.trend.ema_indicator(df["Close"], window=TECNICO["ema_lenta"])
+        df["RSI"]   = ta_lib.momentum.rsi(df["Close"], window=TECNICO["rsi_periodo"])
 
         hoy, ayer = df.iloc[-1], df.iloc[-2]
         precio    = round(float(hoy["Close"]),    2)
@@ -131,9 +131,9 @@ def backtest(ticker, params):
             if isinstance(d.columns, pd.MultiIndex):
                 d.columns = d.columns.get_level_values(0)
 
-        df["EMA_r"] = ta.ema(df["Close"], length=TECNICO["ema_rapida"])
-        df["EMA_l"] = ta.ema(df["Close"], length=TECNICO["ema_lenta"])
-        df["RSI"]   = ta.rsi(df["Close"], length=TECNICO["rsi_periodo"])
+        df["EMA_r"] = ta_lib.trend.ema_indicator(df["Close"], window=TECNICO["ema_rapida"])
+        df["EMA_l"] = ta_lib.trend.ema_indicator(df["Close"], window=TECNICO["ema_lenta"])
+        df["RSI"]   = ta_lib.momentum.rsi(df["Close"], window=TECNICO["rsi_periodo"])
         df = df.dropna()
 
         bm_close = bm["Close"].reindex(df.index, method="ffill").fillna(method="bfill")
