@@ -1,8 +1,8 @@
 streamlit
 yfinance
 pandas
-pandas-ta
 numpy
 scipy
 reportlab
 requests
+ta
