@@ -336,23 +336,35 @@ if buscar and ticker_input.strip():
 
             # Última vela
             fecha_str = df.index[-1].strftime("%d/%m/%Y") if hasattr(df.index[-1],"strftime") else str(df.index[-1])[:10]
-            high_v = round(float(df["High"].iloc[-1]),2) if "High" in df.columns else precio
-            low_v  = round(float(df["Low"].iloc[-1]),2)  if "Low"  in df.columns else precio
+            try:
+                hv = float(df["High"].iloc[-1]) if "High" in df.columns else precio
+                high_v = round(hv, 2) if not np.isnan(hv) else precio
+            except:
+                high_v = precio
+            try:
+                lv = float(df["Low"].iloc[-1]) if "Low" in df.columns else precio
+                low_v = round(lv, 2) if not np.isnan(lv) else precio
+            except:
+                low_v = precio
 
             # Patrones
             res_pat  = analizar_patrones(df)
             patrones = res_pat.get("patrones", [])
             sr       = res_pat.get("soportes_resistencias", {})
 
-            # Fundamental
-            info = {}
+            # Fundamental — separado del timeframe, siempre usa datos diarios
+            info = {"nombre": ticker, "sector":"—", "pais":"—"}
             try:
-                raw = yf.Ticker(ticker).info
+                tkr = yf.Ticker(ticker)
+                # Intentar fast_info primero (más rápido y estable)
+                fi  = tkr.fast_info
+                raw = tkr.info or {}
+                # Combinar ambas fuentes
                 info = {
                     "nombre":  raw.get("longName") or raw.get("shortName") or ticker,
                     "sector":  raw.get("sector","—"),
                     "pais":    raw.get("country","—"),
-                    "cap":     raw.get("marketCap"),
+                    "cap":     raw.get("marketCap") or getattr(fi,"market_cap",None),
                     "pe":      raw.get("trailingPE") or raw.get("forwardPE"),
                     "pb":      raw.get("priceToBook"),
                     "roe":     raw.get("returnOnEquity"),
@@ -361,18 +373,20 @@ if buscar and ticker_input.strip():
                     "de":      raw.get("debtToEquity"),
                     "rev":     raw.get("totalRevenue"),
                     "ebitda":  raw.get("ebitda"),
-                    "beta":    raw.get("beta"),
+                    "beta":    raw.get("beta") or getattr(fi,"three_month_average_volume",None) and raw.get("beta"),
                     "div":     raw.get("dividendYield"),
                     "target":  raw.get("targetMeanPrice"),
                     "rec":     raw.get("recommendationKey","—"),
-                    "52h":     raw.get("fiftyTwoWeekHigh"),
-                    "52l":     raw.get("fiftyTwoWeekLow"),
+                    "52h":     raw.get("fiftyTwoWeekHigh") or getattr(fi,"year_high",None),
+                    "52l":     raw.get("fiftyTwoWeekLow")  or getattr(fi,"year_low",None),
                     "eps":     raw.get("trailingEps"),
                     "ev_eb":   raw.get("enterpriseToEbitda"),
                     "resumen": raw.get("longBusinessSummary",""),
                 }
-            except:
-                info = {"nombre": ticker}
+            except Exception as fe:
+                # Si falla completamente, al menos mostrar nombre del ticker
+                info = {"nombre": ticker, "sector":"—", "pais":"—",
+                        "resumen": f"No se pudieron cargar datos fundamentales para {ticker}."}
 
             # Backtest
             bt = backtest(ticker, params) if timeframe == "1d" else None
@@ -436,8 +450,8 @@ if buscar and ticker_input.strip():
         {f'<div class="vl-item"><div class="vl-label">{sl_label}</div><div class="vl-val {"tp" if es_venta else "sl"}">${sl_val}</div></div>' if sl_val else ''}
         {f'<div class="vl-item"><div class="vl-label">{tp_label}</div><div class="vl-val {"sl" if es_venta else "tp"}">${tp_val}</div></div>' if tp_val else ''}
         {f'<div class="vl-item"><div class="vl-label">Ratio R/R</div><div class="vl-val neu">1:{round(RIESGO["take_profit"]/RIESGO["stop_loss"],1)}</div></div>' if sl_val else ''}
-        <div class="vl-item"><div class="vl-label">Retorno {periodo}</div><div class="vl-val {'tp' if retorno>0 else 'sl'}">{retorno:+.1f}%</div></div>
-        <div class="vl-item"><div class="vl-label">High / Low hoy</div><div class="vl-val neu">${high_v} / ${low_v}</div></div>
+        {f'<div class="vl-item"><div class="vl-label">Retorno {periodo}</div><div class="vl-val {'tp' if retorno>0 else 'sl'}">{retorno:+.1f}%</div></div>' if retorno is not None else ''}
+        <div class="vl-item"><div class="vl-label">High / Low</div><div class="vl-val neu">${high_v} / ${low_v}</div></div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -617,3 +631,4 @@ else:
       </div>
     </div>
     """, unsafe_allow_html=True)
+
