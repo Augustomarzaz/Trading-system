@@ -198,14 +198,14 @@ def calcular_veredicto(df, rsi_v, ema9, ema21, ema50, macd_v, macd_s, bb_lo, bb_
             señales.append({"nombre":"RSI","desc":f"RSI {rsi_v} — zona neutral","pts":0,"dir":"NEUTRAL","peso":"bajo"})
 
     # ── EMA cruce ─────────────────────────────────────────
-    if ema9 and ema21:
+    if ema9 is not None and ema21 is not None:
         if ema9 > ema21:
             señales.append({"nombre":"EMA 9/21","desc":f"EMA9 (${ema9}) por encima de EMA21 (${ema21}) — tendencia alcista","pts":15,"dir":"BUY","peso":"alto"})
         else:
             señales.append({"nombre":"EMA 9/21","desc":f"EMA9 (${ema9}) por debajo de EMA21 (${ema21}) — tendencia bajista","pts":15,"dir":"SELL","peso":"alto"})
 
     # ── EMA50 ─────────────────────────────────────────────
-    if ema50:
+    if ema50 is not None:
         if precio > ema50:
             señales.append({"nombre":"EMA 50","desc":f"Precio (${precio}) por encima de EMA50 (${ema50}) — mercado alcista","pts":10,"dir":"BUY","peso":"medio"})
         else:
@@ -223,7 +223,7 @@ def calcular_veredicto(df, rsi_v, ema9, ema21, ema50, macd_v, macd_s, bb_lo, bb_
             señales.append({"nombre":"MACD","desc":f"MACD ({macd_v}) por debajo de señal — momentum débil","pts":10,"dir":"SELL","peso":"medio"})
 
     # ── Bollinger ─────────────────────────────────────────
-    if bb_up > bb_lo:
+    if bb_up is not None and bb_lo is not None and bb_up > bb_lo:
         bb_pos = (precio - bb_lo) / (bb_up - bb_lo) * 100
         if bb_pos < 10:
             señales.append({"nombre":"Bollinger","desc":f"Precio tocando banda inferior (${bb_lo}) — posible rebote","pts":20,"dir":"BUY","peso":"alto"})
@@ -617,4 +617,3 @@ else:
       </div>
     </div>
     """, unsafe_allow_html=True)
-
