@@ -329,8 +329,6 @@ if buscar and ticker_input.strip():
             bb_lo  = safe(bb.bollinger_lband())
 
             retorno = round((precio - float(close.iloc[0])) / float(close.iloc[0]) * 100, 2)
-            sl_val  = round(precio * (1 - RIESGO["stop_loss"]),   2)
-            tp_val  = round(precio * (1 + RIESGO["take_profit"]), 2)
 
             # Última vela
             fecha_str = df.index[-1].strftime("%d/%m/%Y") if hasattr(df.index[-1],"strftime") else str(df.index[-1])[:10]
@@ -381,6 +379,25 @@ if buscar and ticker_input.strip():
                 bb_lo, bb_up, precio, patrones
             )
 
+            # Niveles según dirección del veredicto
+            es_compra = cls in ["cf", "c"]
+            es_venta  = cls in ["vf", "v"]
+            if es_compra:
+                sl_val      = round(precio * (1 - RIESGO["stop_loss"]),   2)
+                tp_val      = round(precio * (1 + RIESGO["take_profit"]), 2)
+                sl_label    = "Stop Loss"
+                tp_label    = "Take Profit"
+            elif es_venta:
+                sl_val      = round(precio * (1 + RIESGO["stop_loss"]),   2)
+                tp_val      = round(precio * (1 - RIESGO["take_profit"]), 2)
+                sl_label    = "Stop (corto)"
+                tp_label    = "Objetivo bajista"
+            else:
+                sl_val      = None
+                tp_val      = None
+                sl_label    = "Stop Loss"
+                tp_label    = "Take Profit"
+
         except Exception as e:
             st.error(f"Error: {str(e)}")
             st.stop()
@@ -412,9 +429,9 @@ if buscar and ticker_input.strip():
 
       <div class="verdict-levels">
         <div class="vl-item"><div class="vl-label">Precio actual</div><div class="vl-val neu">${precio}</div></div>
-        <div class="vl-item"><div class="vl-label">Stop Loss</div><div class="vl-val sl">${sl_val}</div></div>
-        <div class="vl-item"><div class="vl-label">Take Profit</div><div class="vl-val tp">${tp_val}</div></div>
-        <div class="vl-item"><div class="vl-label">Ratio R/R</div><div class="vl-val neu">1:{round(RIESGO['take_profit']/RIESGO['stop_loss'],1)}</div></div>
+        {f'<div class="vl-item"><div class="vl-label">{sl_label}</div><div class="vl-val {"tp" if es_venta else "sl"}">${sl_val}</div></div>' if sl_val else ''}
+        {f'<div class="vl-item"><div class="vl-label">{tp_label}</div><div class="vl-val {"sl" if es_venta else "tp"}">${tp_val}</div></div>' if tp_val else ''}
+        {f'<div class="vl-item"><div class="vl-label">Ratio R/R</div><div class="vl-val neu">1:{round(RIESGO["take_profit"]/RIESGO["stop_loss"],1)}</div></div>' if sl_val else ''}
         <div class="vl-item"><div class="vl-label">Retorno {periodo}</div><div class="vl-val {'tp' if retorno>0 else 'sl'}">{retorno:+.1f}%</div></div>
         <div class="vl-item"><div class="vl-label">High / Low hoy</div><div class="vl-val neu">${high_v} / ${low_v}</div></div>
       </div>
