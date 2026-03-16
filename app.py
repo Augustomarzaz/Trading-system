@@ -10,10 +10,12 @@ import yfinance as yf
 from datetime import datetime
 
 import ta as ta_lib
-from patterns import analizar_patrones
-from alerts   import send_telegram
-from config   import TECNICO, RIESGO
-from engine   import backtest
+import streamlit.components.v1 as components
+from patterns        import analizar_patrones
+from alerts          import send_telegram
+from config          import TECNICO, RIESGO
+from engine          import backtest
+from chart_component import render_chart_html
 
 st.set_page_config(
     page_title="Trading System", page_icon="📈",
@@ -325,8 +327,10 @@ if buscar and ticker_input.strip():
             ema50  = safe(ema50_s)
             macd_v = safe(macd_vs)
             macd_sg= safe(macd_ss)
-            bb_up  = safe(bb.bollinger_hband())
-            bb_lo  = safe(bb.bollinger_lband())
+            bb_up_series = bb.bollinger_hband()
+            bb_lo_series = bb.bollinger_lband()
+            bb_up  = safe(bb_up_series)
+            bb_lo  = safe(bb_lo_series)
 
             retorno = round((precio - float(close.iloc[0])) / float(close.iloc[0]) * 100, 2)
 
@@ -528,6 +532,22 @@ if buscar and ticker_input.strip():
             if eq:
                 st.line_chart(pd.DataFrame({"Equity ($)":eq}), height=140, use_container_width=True)
 
+    # ── Gráfico TradingView ──────────────────────────────
+    with st.expander("📊 Ver gráfico con señales", expanded=False):
+        chart_html = render_chart_html(
+            df       = df,
+            ema9_s   = ema9_s,
+            ema21_s  = ema21_s,
+            ema50_s  = ema50_s,
+            rsi_s    = rsi_s,
+            bb_up_s  = bb_up_series,
+            bb_lo_s  = bb_lo_series,
+            sr       = sr,
+            veredicto_cls = cls,
+            ticker   = ticker,
+        )
+        components.html(chart_html, height=570, scrolling=False)
+
     # ══════════════════════════════════════════════════════
     # FUNDAMENTAL — siempre visible, al fondo
     # ══════════════════════════════════════════════════════
@@ -597,3 +617,4 @@ else:
       </div>
     </div>
     """, unsafe_allow_html=True)
+
